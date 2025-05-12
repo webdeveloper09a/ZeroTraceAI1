@@ -5,7 +5,8 @@ import re
 import random
 import logging
 from together import Together
-from telegram import Update, ChatAction
+from telegram import Update
+from telegram.constants import ChatAction
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
 # Load API keys (for Railway or environment)
