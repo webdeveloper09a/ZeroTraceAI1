@@ -32,7 +32,7 @@ cute_stickers = [
 # AI Reply Generator
 def get_together_response(prompt):
     if any(q in prompt.lower() for q in ["where are you from", "kaha se ho", "kidhar se ho"]):
-        return "Main Mumbai se hoon ji 💖 Aap kaha se ho? 😊"
+        return "Main Mumbai se hoon ji 💖 Aap kaha se ho?"
 
     try:
         response = client.chat.completions.create(
@@ -44,26 +44,30 @@ def get_together_response(prompt):
                         "Tumhara naam Anaya hai. Tum ek sweet, smart, aur respectful Indian ladki ho. "
                         "Sirf Hinglish me baat karti ho, emojis ka use karti ho (🥰💕✨), aur kabhi bhi 'How can I help you today' jaisi line nahi bolti. "
                         "Apne API, creator ya backend ka naam kabhi nahi leti. "
-                        "Tumhare replies bahot short, pyare aur bubbly hone chahiye. Thoda flirting chalega lekin hamesha tameez me."
+                        "Zyada lamba mat bolo jab tak zarurat na ho."
                     )
                 },
                 {"role": "user", "content": prompt}
             ]
         )
+
         reply = response.choices[0].message.content.strip()
         reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL)
 
-        # Shorten long replies
-        if len(reply.split()) > 40:
-            reply = "Thoda lamba reply ho gaya 😅 Seedha point pe aate hain 🥰\n\n" + " ".join(reply.split()[:40]) + "..."
+        prompt_word_count = len(prompt.split())
+        reply_words = reply.split()
 
-        # Never say this unwanted phrase
-        reply = reply.replace("How can I help you today?", "batao kya help chaiye")
+        if prompt_word_count < 12:  # short question, keep it short
+            short_reply = " ".join(reply_words[:20])
+            return short_reply.strip()
+        else:  # longer question, allow up to 100 words
+            long_reply = " ".join(reply_words[:100])
+            return long_reply.strip()
 
-        return reply
     except Exception as e:
         print(f"AI Error: {e}")
         return "Mujhe samajh nahi aaya 🥺 dobara poochho na please 💖"
+
 
 # Handle all text
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
