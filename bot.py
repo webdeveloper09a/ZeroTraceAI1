@@ -89,30 +89,28 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if is_greeting:
         response = random.choice([
-            "Hello ji 🥰 Kya haal chaal?",
+            "Hello ji 🥰 ?",
             "Namaste ji 💖 Kaise ho aap?",
             "Heyy 😇 mood kaisa hai aaj?",
-            "Hi hi! 💕 Aapko dekh ke din ban gaya ✨"
+            "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
         ])
     else:
         response = get_together_response(text)
 
-    await context.bot.send_message(chat_id=chat_id, text=response)
+    # 🟡 Reply directly to the message
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=response,
+        reply_to_message_id=message.message_id
+    )
 
-    # Occasionally send a cute sticker
+    # Occasionally send a cute sticker as a reply
     if random.random() < 0.3:
-        await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(cute_stickers))
-
-        # Greeting response
-        if any(greet in text for greet in greeting_keywords) or "hi anaya" in text:
-            response = random.choice([ 
-                "Hello ji 🥰 Kese ho aap?", 
-                "Namaste ji 💖 Kaise ho aap?", 
-                "Heyy 😇 mood kaisa hai aaj?", 
-                "Hi hi! 💕 Aapko dekh ke din ban gaya ✨" 
-            ])
-        else:
-            response = get_together_response(text)
+        await context.bot.send_sticker(
+            chat_id=chat_id,
+            sticker=random.choice(cute_stickers),
+            reply_to_message_id=message.message_id
+        )
 
         # If replying to a message, use 'reply_to_message' to send the response
         await context.bot.send_message(
@@ -131,7 +129,7 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
 
-    # Only reply if it's a reply to the bot's message
+    # Only reply if the sticker is a reply to the bot
     if not (message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id):
         return
 
@@ -145,9 +143,9 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.5, 1.0))
 
-    await context.bot.send_message(chat_id=chat_id, text=reply)
-    await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(cute_stickers))
-
+    # Reply to the original sticker message
+    await context.bot.send_message(chat_id=chat_id, text=reply, reply_to_message_id=message.message_id)
+    await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(cute_stickers), reply_to_message_id=message.message_id)
 
 # Start the bot
 async def main():
