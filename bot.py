@@ -8,33 +8,30 @@ from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
-# ✅ Correct environment variable usage
+# Environment variables
 TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-# ✅ Check for missing token
 if not TOGETHER_API_KEY or not TELEGRAM_TOKEN:
-    raise ValueError("TOGETHER_API_KEY or TELEGRAM_TOKEN not set in environment variables.")
+    raise ValueError("Environment variables for TELEGRAM_TOKEN or TOGETHER_API_KEY are missing.")
 
 client = Together(api_key=TOGETHER_API_KEY)
 
-# Logging setup
+# Logging
 logging.basicConfig(level=logging.CRITICAL)
 logger = logging.getLogger(__name__)
 
-# Greeting keywords
-greeting_keywords = ["hi baby", "hello", "hey", "namaste", "hello there", "wassup", "kaise ho"]
-
-# Cute sticker list
-CUTE_STICKERS = [
+# Keywords
+greeting_keywords = ["hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy", "hii anaya", "hello anaya"]
+cute_stickers = [
     "CAACAgUAAxkBAAEEqK9mY8MprWjsJLSosd-NJgwW3zzcUwACXAIAAkHb6VcX22e6xQdRbjAE",
     "CAACAgUAAxkBAAEEqLFmY8Oa2Ns6jCL1bLFC-Fp5raJ7_QACVwIAAkHb6Vf6DeD0VaLzYTME",
     "CAACAgUAAxkBAAEEqLRmY8PKShjwfnk4QMNSEZsIk3w2lwACkQEAArVx2VdzI3aYO0OfsDME",
 ]
 
-# Get reply from Together AI
+# AI Reply Generator
 def get_together_response(prompt):
-    if any(word in prompt.lower() for word in ["where are you from", "kaha se ho", "kidhar se ho", "kaha ki ho"]):
+    if any(q in prompt.lower() for q in ["where are you from", "kaha se ho", "kidhar se ho"]):
         return "Main Mumbai se hoon ji 💖 Aap kaha se ho? 😊"
 
     try:
@@ -44,11 +41,10 @@ def get_together_response(prompt):
                 {
                     "role": "system",
                     "content": (
-                        "Tumhara naam Anaya hai. Tum ek smart, sweet, respectful aur bubbly Indian ladki ho. "
-                        "Hamesha Hinglish me baat karti ho, emojis ka use karti ho (🥰💕✨😇) aur sabko 'aap' kehkar izzat se baat karti ho. "
-                        "Thoda mazaak kar sakti ho lekin kabhi badtameezi nahi karti. "
-                        "Kabhi bhi apne creator, backend, ya API ke baare me baat mat karo. "
-                        "Sirf ladki wali vibe do, bilkul bhi ladke jaise baat mat karo."
+                        "Tumhara naam Anaya hai. Tum ek sweet, smart, aur respectful Indian ladki ho. "
+                        "Sirf Hinglish me baat karti ho, emojis ka use karti ho (🥰💕✨), aur kabhi bhi 'How can I help you today' jaisi line nahi bolti. "
+                        "Apne API, creator ya backend ka naam kabhi nahi leti. "
+                        "Tumhare replies short, pyare aur bubbly hone chahiye. Thoda flirting chalega lekin hamesha tameez me."
                     )
                 },
                 {"role": "user", "content": prompt}
@@ -56,12 +52,20 @@ def get_together_response(prompt):
         )
         reply = response.choices[0].message.content.strip()
         reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL)
+
+        # Shorten long replies
+        if len(reply.split()) > 40:
+            reply = "Thoda lamba ho gaya 😅 Seedha point pe aate hain 🥰\n\n" + " ".join(reply.split()[:40]) + "..."
+
+        # Never say this unwanted phrase
+        reply = reply.replace("How can I help you today?", "")
+
         return reply
     except Exception as e:
-        print(f"Error: {e}")
-        return "Maaf kijiye, mujhe samajh nahi aaya 😶"
+        print(f"AI Error: {e}")
+        return "Mujhe samajh nahi aaya 🥺 dobara poochho na please 💖"
 
-# Handle text messages
+# Handle all text
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
@@ -73,49 +77,55 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         should_reply = True
     elif "anaya" in text:
         should_reply = True
-    elif any(greet in text for greet in greeting_keywords):
+    elif any(word in text for word in greeting_keywords):
         should_reply = True
 
     if should_reply:
         await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        await asyncio.sleep(random.uniform(0.7, 1.5))
+        await asyncio.sleep(random.uniform(0.7, 1.3))
 
-        if any(greet in text for greet in greeting_keywords):
-            response = "Hello! 💖 Kese ho ji? 🥰"
+        # Greeting response
+        if any(greet in text for greet in greeting_keywords) or "hi anaya" in text:
+            response = random.choice([
+                "Hello ji 🥰 Kya haal chaal?",
+                "Namaste ji 💖 Kaise ho aap?",
+                "Heyy 😇 mood kaisa hai aaj?",
+                "Hi hi! 💕 Aapko dekh ke din ban gaya ✨"
+            ])
         else:
             response = get_together_response(text)
 
         await context.bot.send_message(chat_id=chat_id, text=response)
 
+        # Send cute sticker sometimes
         if random.random() < 0.3:
-            await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(CUTE_STICKERS))
+            await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(cute_stickers))
 
-# Handle stickers
+# Handle sticker replies
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
 
-    cute_replies = [
-        "Ye sticker toh dil le gaya 💕",
-        "Aap toh bade cute sticker bhejte ho 😍",
-        "Aapka sticker dekh ke mood fresh ho gaya 😇",
-        "Anaya blush kar gayi yeh dekh ke 😳💞",
-    ]
+    reply = random.choice([
+        "Aapke sticker ne dil jeet liya 🥺💕",
+        "Yeh toh bohot cute tha 🥰",
+        "Mujhe bhi ek aisa sticker chahiye 😳✨",
+        "Aapke stickers jaise aap bhi cute ho kya? 😋"
+    ])
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-    await asyncio.sleep(random.uniform(0.5, 1.2))
+    await asyncio.sleep(random.uniform(0.5, 1.0))
 
-    reply = random.choice(cute_replies)
     await context.bot.send_message(chat_id=chat_id, text=reply)
-    await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(CUTE_STICKERS))
+    await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(cute_stickers))
 
-# Start bot
+# Start the bot
 async def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
 
-    print("Anaya is live 💖 Ready to chat with respect and cuteness 😘")
+    print("💖 Anaya is online and ready to charm 🥰")
     await application.run_polling(allowed_updates=None)
 
 if __name__ == '__main__':
