@@ -152,25 +152,28 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Handle sticker replies
+# Handle sticker replies (will send a random sticker in reply to any sticker)
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
 
-    # Only respond if the sticker is a reply to the bot's message
-    if message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id:
-        
-        # Send a random sticker from the available stickers
-        sticker_list = cute_stickers + sigma_stickers + savage_stickers + angry_stickers + funny_stickers + chill_stickers
-        
-        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        await asyncio.sleep(random.uniform(0.5, 1.0))
+    # Check if the message is a sticker
+    if not message.sticker:
+        return
 
-        # Reply with a random sticker from the entire list
-        await context.bot.send_sticker(
-            chat_id=chat_id,
-            sticker=random.choice(sticker_list),
-            reply_to_message_id=message.message_id
-        )
+    # Send a typing action while responding
+    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    await asyncio.sleep(random.uniform(0.5, 1.0))
+
+    # Send a random sticker from the predefined list
+    random_sticker = random.choice(cute_stickers + sigma_stickers + savage_stickers + angry_stickers + funny_stickers + chill_stickers)
+
+    # Send the sticker
+    await context.bot.send_sticker(
+        chat_id=chat_id,
+        sticker=random_sticker
+    )
+
 
 # Start the bot
 async def main():
