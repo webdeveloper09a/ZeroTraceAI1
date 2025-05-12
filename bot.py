@@ -17,7 +17,7 @@ if not TOGETHER_API_KEY or not TELEGRAM_TOKEN:
     raise ValueError("Missing TELEGRAM_TOKEN or TOGETHER_API_KEY.")
 
 # ✅ Only you can trigger /start and save stickers
-OWNER_ID = 8103377412
+OWNER_ID = 7796598050
 
 # 🤖 Together API Client
 client = Together(api_key=TOGETHER_API_KEY)
