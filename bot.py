@@ -55,10 +55,10 @@ def get_together_response(prompt):
 
         # Shorten long replies
         if len(reply.split()) > 40:
-            reply = "Thoda lamba ho gaya 😅 Seedha point pe aate hain 🥰\n\n" + " ".join(reply.split()[:40]) + "..."
+            reply = "Thoda lamba reply ho gaya 😅 Seedha point pe aate hain 🥰\n\n" + " ".join(reply.split()[:40]) + "..."
 
         # Never say this unwanted phrase
-        reply = reply.replace("How can I help you today?", "")
+        reply = reply.replace("How can I help you today?", "batao kya help chaiye")
 
         return reply
     except Exception as e:
