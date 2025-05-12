@@ -155,37 +155,21 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
 
-    # Ensure the bot only replies with a sticker when a sticker is received
-    # You can optionally add sticker categories based on the sticker's attributes (like file_unique_id) if needed.
-    sticker_list = []
+    # Only respond if the sticker is a reply to the bot's message
+    if message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id:
+        
+        # Send a random sticker from the available stickers
+        sticker_list = cute_stickers + sigma_stickers + savage_stickers + angry_stickers + funny_stickers + chill_stickers
+        
+        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        await asyncio.sleep(random.uniform(0.5, 1.0))
 
-    # You can use sticker categories to define the reply stickers
-    if "cute" in message.sticker.file_unique_id.lower():
-        sticker_list = cute_stickers
-    elif "sigma" in message.sticker.file_unique_id.lower():
-        sticker_list = sigma_stickers
-    elif "savage" in message.sticker.file_unique_id.lower():
-        sticker_list = savage_stickers
-    elif "angry" in message.sticker.file_unique_id.lower():
-        sticker_list = angry_stickers
-    elif "funny" in message.sticker.file_unique_id.lower():
-        sticker_list = funny_stickers
-    elif "chill" in message.sticker.file_unique_id.lower():
-        sticker_list = chill_stickers
-    else:
-        sticker_list = random.choice([cute_stickers, sigma_stickers, savage_stickers, angry_stickers, funny_stickers, chill_stickers])
-
-    # Send the sticker reply
-    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-    await asyncio.sleep(random.uniform(0.5, 1.0))
-
-    # Send a sticker as a response
-    await context.bot.send_sticker(
-        chat_id=chat_id,
-        sticker=random.choice(sticker_list),
-        reply_to_message_id=message.message_id
-    )
-
+        # Reply with a random sticker from the entire list
+        await context.bot.send_sticker(
+            chat_id=chat_id,
+            sticker=random.choice(sticker_list),
+            reply_to_message_id=message.message_id
+        )
 
 # Start the bot
 async def main():
