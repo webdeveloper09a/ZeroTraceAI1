@@ -87,7 +87,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Greeting response
         if any(greet in text for greet in greeting_keywords) or "hi anaya" in text:
             response = random.choice([ 
-                "Hello ji 🥰 Kya haal chaal?", 
+                "Hello ji 🥰 Kese ho aap?", 
                 "Namaste ji 💖 Kaise ho aap?", 
                 "Heyy 😇 mood kaisa hai aaj?", 
                 "Hi hi! 💕 Aapko dekh ke din ban gaya ✨" 
