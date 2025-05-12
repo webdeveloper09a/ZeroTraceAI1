@@ -155,13 +155,11 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
 
-    # Only reply if the sticker is a reply to the bot
-    if not (message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id):
-        return
-
-    # Categorize sticker types and respond with a related sticker
+    # Ensure the bot only replies with a sticker when a sticker is received
+    # You can optionally add sticker categories based on the sticker's attributes (like file_unique_id) if needed.
     sticker_list = []
 
+    # You can use sticker categories to define the reply stickers
     if "cute" in message.sticker.file_unique_id.lower():
         sticker_list = cute_stickers
     elif "sigma" in message.sticker.file_unique_id.lower():
@@ -177,10 +175,11 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         sticker_list = random.choice([cute_stickers, sigma_stickers, savage_stickers, angry_stickers, funny_stickers, chill_stickers])
 
+    # Send the sticker reply
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.5, 1.0))
 
-    # Send a sticker reply
+    # Send a sticker as a response
     await context.bot.send_sticker(
         chat_id=chat_id,
         sticker=random.choice(sticker_list),
