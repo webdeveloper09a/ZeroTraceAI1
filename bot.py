@@ -86,20 +86,26 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Greeting response
         if any(greet in text for greet in greeting_keywords) or "hi anaya" in text:
-            response = random.choice([
-                "Hello ji 🥰 Kya haal chaal?",
-                "Namaste ji 💖 Kaise ho aap?",
-                "Heyy 😇 mood kaisa hai aaj?",
-                "Hi hi! 💕 Aapko dekh ke din ban gaya ✨"
+            response = random.choice([ 
+                "Hello ji 🥰 Kya haal chaal?", 
+                "Namaste ji 💖 Kaise ho aap?", 
+                "Heyy 😇 mood kaisa hai aaj?", 
+                "Hi hi! 💕 Aapko dekh ke din ban gaya ✨" 
             ])
         else:
             response = get_together_response(text)
 
-        await context.bot.send_message(chat_id=chat_id, text=response)
+        # If replying to a message, use 'reply_to_message' to send the response
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text=response,
+            reply_to_message_id=message.message_id  # This line ensures the bot replies to the message it's responding to
+        )
 
         # Send cute sticker sometimes
         if random.random() < 0.3:
             await context.bot.send_sticker(chat_id=chat_id, sticker=random.choice(cute_stickers))
+
 
 # Handle sticker replies
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
