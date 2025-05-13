@@ -99,23 +99,27 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message.reply_to_message.from_user.id == context.bot.id
     )
 
-    # Greeting check
+    # Greeting or name-based trigger
     is_greeting = any(greet in text for greet in greeting_keywords)
     contains_anaya = "anaya" in text
 
-    # Must be greeting + (reply to bot OR mention Anaya)
-    if not (is_greeting and (is_reply_to_bot or contains_anaya)):
+    # Trigger if it's greeting+mention or it's part of a reply chain to the bot
+    if not (is_greeting or contains_anaya or is_reply_to_bot):
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.7, 1.3))
 
-    response = random.choice([
-        "Hello ji 🥰 ?",
-        "Namaste ji 💖 Kaise ho aap?",
-        "Heyy 😇 mood kaisa hai aaj?",
-        "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
-    ])
+    # Use AI for reply (optional: fallback to canned replies for greetings)
+    if is_greeting and not is_reply_to_bot:
+        response = random.choice([
+            "Hello ji 🥰 ?",
+            "Namaste ji 💖 Kaise ho aap?",
+            "Heyy 😇 mood kaisa hai aaj?",
+            "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
+        ])
+    else:
+        response = get_together_response(message.text)
 
     await context.bot.send_message(
         chat_id=chat_id,
@@ -123,7 +127,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_to_message_id=message.message_id
     )
 
-# 🧸 Save and respond to stickers
+
+# 🧸 Handle sticker messages
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
@@ -134,28 +139,9 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     file_id = message.sticker.file_id
 
-    # Save if from owner
+    # Only owner can save stickers (in private chat or group)
     if user_id == OWNER_ID:
         save_sticker(file_id)
-
-    # Only reply if user is replying to bot
-    is_reply_to_bot = (
-        message.reply_to_message and 
-        message.reply_to_message.from_user.id == context.bot.id
-    )
-
-    if is_reply_to_bot and saved_stickers:
-        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-        await asyncio.sleep(random.uniform(0.5, 1.0))
-
-        # Don't reply with the same sticker
-        possible_stickers = [s for s in saved_stickers if s != file_id]
-        if possible_stickers:
-            await context.bot.send_sticker(
-                chat_id=chat_id,
-                sticker=random.choice(possible_stickers),
-                reply_to_message_id=message.message_id
-            )
 
 # 🚀 Launch Bot
 async def main():
