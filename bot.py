@@ -86,36 +86,30 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🥰 Send me stickers to save!"
         )
 
-# 🗨️ Handle text (greeting or reply to bot)
+# 🗨️ Handle text (only if replied to Anaya or contains 'anaya')
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
     text = message.text.strip().lower()
 
     is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
-    is_greeting = any(word in text for word in greeting_keywords)
+    mentions_anaya = "anaya" in text
 
-    if not (is_reply_to_bot or is_greeting):
+    # Only respond if message is a reply to bot or contains "anaya"
+    if not (is_reply_to_bot or mentions_anaya):
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.7, 1.3))
 
-    if is_greeting:
-        response = random.choice([
-            "Hello ji 🥰 ?",
-            "Namaste ji 💖 Kaise ho aap?",
-            "Heyy 😇 mood kaisa hai aaj?",
-            "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
-        ])
-    else:
-        response = get_together_response(text)
+    response = get_together_response(text)
 
     await context.bot.send_message(
         chat_id=chat_id,
         text=response,
         reply_to_message_id=message.message_id
     )
+
 
 # 🧸 Handle sticker messages
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
