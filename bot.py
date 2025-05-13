@@ -71,7 +71,7 @@ def get_together_response(prompt):
 
         # Remove any assistant-style generic replies
         banned_phrases = [
-            "how can i help", "how may i assist", "kya madad", "need any help", "need assistance", "kaise madad", "can i help"
+            "how can i help","kya help chaiye", "how may i assist", "kya madad", "need any help", "need assistance", "kaise madad", "can i help"
         ]
         for phrase in banned_phrases:
             if phrase in reply.lower():
@@ -117,53 +117,40 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_to_message_id=message.message_id
     )
 
-
 # 🧸 Handle sticker messages
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
     user_id = update.effective_user.id
-    chat_type = update.effective_chat.type
 
     if not message.sticker:
         return
 
     file_id = message.sticker.file_id
 
-    # ✅ Only save sticker if in private chat and from owner
-    if chat_type == "private" and user_id == OWNER_ID:
-        save_sticker(file_id)
+    # Save stickers ONLY in private chat and ONLY from OWNER
+    if message.chat.type == "private" and user_id == OWNER_ID:
+        if file_id not in saved_stickers:
+            save_sticker(file_id)
 
-    # 🎯 Only reply if this sticker is a reply to the bot
-    if message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id:
-        if saved_stickers:
-            available_stickers = [s for s in saved_stickers if s != file_id]
-            if not available_stickers:
-                return  # Avoid replying with the same sticker
-
-            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
-            await asyncio.sleep(random.uniform(0.5, 1.0))
-            await context.bot.send_sticker(
-                chat_id=chat_id,
-                sticker=random.choice(available_stickers),
-                reply_to_message_id=message.message_id
-            )
-
-    # 🎯 If it's a reply to bot, respond with a different random sticker
+    # Only reply to sticker if it was a reply to bot AND there's at least 1 saved sticker
     is_reply_to_bot = (
-        message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
+        message.reply_to_message and 
+        message.reply_to_message.from_user and 
+        message.reply_to_message.from_user.id == context.bot.id
     )
 
     if is_reply_to_bot and saved_stickers:
-        available_stickers = [s for s in saved_stickers if s != file_id]
-        if not available_stickers:
-            return  # Skip if only one sticker is saved
+        # Avoid replying with the same sticker
+        choices = [s for s in saved_stickers if s != file_id]
+        if not choices:
+            return  # No other sticker to reply with
 
         await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         await asyncio.sleep(random.uniform(0.5, 1.0))
         await context.bot.send_sticker(
             chat_id=chat_id,
-            sticker=random.choice(available_stickers),
+            sticker=random.choice(choices),
             reply_to_message_id=message.message_id
         )
 
