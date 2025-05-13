@@ -45,7 +45,7 @@ def save_sticker(file_id):
 # 👋 Greeting keywords
 greeting_keywords = ["hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy", "hii anaya", "hello anaya"]
 
-# 🤖 AI Response Logic
+# 🤖 AI Response Logic (filtered and smart)
 def get_together_response(prompt):
     if any(q in prompt.lower() for q in ["where are you from", "kaha se ho", "kidhar se ho"]):
         return "Main Mumbai se hoon ji 💖 Aap kaha se ho?"
@@ -59,19 +59,26 @@ def get_together_response(prompt):
                     "content": (
                         "Tumhara naam Anaya hai. Tum ek sweet, smart, aur respectful Indian ladki ho. "
                         "Sirf Hinglish me baat karti ho, emojis ka use karti ho (🥰💕✨), aur kabhi bhi 'How can I help you today' jaisi line nahi bolti. "
-                        "Apne API, creator ya backend ka naam kabhi nahi leti. "
-                        "Zyada lamba mat bolo jab tak zarurat na ho."
+                        "Apne API, creator ya backend ka naam kabhi nahi leti. Zyada lamba mat bolo jab tak zarurat na ho."
                     )
                 },
                 {"role": "user", "content": prompt}
             ]
         )
+
         reply = response.choices[0].message.content.strip()
         reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL)
 
+        # Remove any assistant-style generic replies
+        banned_phrases = [
+            "how can i help", "how may i assist", "kya madad", "need any help", "need assistance", "kaise madad", "can i help"
+        ]
+        for phrase in banned_phrases:
+            if phrase in reply.lower():
+                return "Kya bol rahe ho 😅 thoda clearly poochho na 💖"
+
         prompt_word_count = len(prompt.split())
         reply_words = reply.split()
-
         return " ".join(reply_words[:20 if prompt_word_count < 12 else 100]).strip()
 
     except Exception as e:
@@ -123,9 +130,24 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     file_id = message.sticker.file_id
 
-    # ✅ Only save stickers if in private chat AND user is the owner
+    # ✅ Only save sticker if in private chat and from owner
     if chat_type == "private" and user_id == OWNER_ID:
         save_sticker(file_id)
+
+    # 🎯 Only reply if this sticker is a reply to the bot
+    if message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id:
+        if saved_stickers:
+            available_stickers = [s for s in saved_stickers if s != file_id]
+            if not available_stickers:
+                return  # Avoid replying with the same sticker
+
+            await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+            await asyncio.sleep(random.uniform(0.5, 1.0))
+            await context.bot.send_sticker(
+                chat_id=chat_id,
+                sticker=random.choice(available_stickers),
+                reply_to_message_id=message.message_id
+            )
 
     # 🎯 If it's a reply to bot, respond with a different random sticker
     is_reply_to_bot = (
