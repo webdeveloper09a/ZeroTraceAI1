@@ -42,8 +42,8 @@ def save_sticker(file_id):
 
 # 👋 Greeting keywords
 greeting_keywords = [
-    "hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy", 
-    "hii anaya", "hello anaya", "hi anaya", "heyy anaya"
+    "hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy",
+    "hi anaya", "hello anaya", "heyy anaya", "hii anaya"
 ]
 
 # 🤖 AI Response Logic
@@ -93,20 +93,18 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = message.chat_id
     text = message.text.strip().lower()
 
-    # Reply to bot check
+    # Check if message is replying to bot
     is_reply_to_bot = (
         message.reply_to_message and
         message.reply_to_message.from_user.id == context.bot.id
     )
 
-    # Check if message mentions Anaya directly
-    calls_anaya = any(name in text for name in ["hi anaya", "hello anaya", "heyy anaya", "hii anaya"])
-
     # Greeting check
     is_greeting = any(greet in text for greet in greeting_keywords)
+    contains_anaya = "anaya" in text
 
-    # Reply only if: (reply + greeting) OR (directly calls Anaya)
-    if not ((is_reply_to_bot and is_greeting) or calls_anaya):
+    # Must be greeting + (reply to bot OR mention Anaya)
+    if not (is_greeting and (is_reply_to_bot or contains_anaya)):
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
@@ -140,7 +138,7 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == OWNER_ID:
         save_sticker(file_id)
 
-    # Respond only if it's a reply to bot
+    # Only reply if user is replying to bot
     is_reply_to_bot = (
         message.reply_to_message and 
         message.reply_to_message.from_user.id == context.bot.id
@@ -149,11 +147,15 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_reply_to_bot and saved_stickers:
         await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         await asyncio.sleep(random.uniform(0.5, 1.0))
-        await context.bot.send_sticker(
-            chat_id=chat_id,
-            sticker=random.choice(saved_stickers),
-            reply_to_message_id=message.message_id
-        )
+
+        # Don't reply with the same sticker
+        possible_stickers = [s for s in saved_stickers if s != file_id]
+        if possible_stickers:
+            await context.bot.send_sticker(
+                chat_id=chat_id,
+                sticker=random.choice(possible_stickers),
+                reply_to_message_id=message.message_id
+            )
 
 # 🚀 Launch Bot
 async def main():
