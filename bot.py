@@ -1,3 +1,5 @@
+
+
 import re
 import asyncio
 import os
@@ -16,7 +18,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOGETHER_API_KEY or not TELEGRAM_TOKEN:
     raise ValueError("Missing TELEGRAM_TOKEN or TOGETHER_API_KEY.")
 
-# ✅ Only owner can trigger /start and save stickers
+# ✅ Only you can trigger /start and save stickers
 OWNER_ID = 7796598050
 
 # 🤖 Together API Client
@@ -41,10 +43,7 @@ def save_sticker(file_id):
             json.dump(saved_stickers, f)
 
 # 👋 Greeting keywords
-greeting_keywords = [
-    "hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy",
-    "hi anaya", "hello anaya", "heyy anaya", "hii anaya"
-]
+greeting_keywords = ["hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy", "hii anaya", "hello anaya"]
 
 # 🤖 AI Response Logic
 def get_together_response(prompt):
@@ -79,7 +78,7 @@ def get_together_response(prompt):
         print(f"AI Error: {e}")
         return "Mujhe samajh nahi aaya 🥺 dobara poochho na please 💖"
 
-# 🟡 /start only for owner in private chat
+# 🟡 Handle /start in private chat only if from owner
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type == "private" and update.effective_user.id == OWNER_ID:
         await context.bot.send_message(
@@ -87,31 +86,22 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🥰 Send me stickers to save!"
         )
 
-# 🗨️ Greeting or direct "Anaya" replies
+# 🗨️ Handle text (greeting or reply to bot)
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
     text = message.text.strip().lower()
 
-    # Check if message is replying to bot
-    is_reply_to_bot = (
-        message.reply_to_message and
-        message.reply_to_message.from_user.id == context.bot.id
-    )
+    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
+    is_greeting = any(word in text for word in greeting_keywords)
 
-    # Greeting or name-based trigger
-    is_greeting = any(greet in text for greet in greeting_keywords)
-    contains_anaya = "anaya" in text
-
-    # Trigger if it's greeting+mention or it's part of a reply chain to the bot
-    if not (is_greeting or contains_anaya or is_reply_to_bot):
+    if not (is_reply_to_bot or is_greeting):
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.7, 1.3))
 
-    # Use AI for reply (optional: fallback to canned replies for greetings)
-    if is_greeting and not is_reply_to_bot:
+    if is_greeting:
         response = random.choice([
             "Hello ji 🥰 ?",
             "Namaste ji 💖 Kaise ho aap?",
@@ -119,14 +109,13 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
         ])
     else:
-        response = get_together_response(message.text)
+        response = get_together_response(text)
 
     await context.bot.send_message(
         chat_id=chat_id,
         text=response,
         reply_to_message_id=message.message_id
     )
-
 
 # 🧸 Handle sticker messages
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -143,10 +132,22 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == OWNER_ID:
         save_sticker(file_id)
 
-# 🚀 Launch Bot
+    # If it's a reply to bot, respond with random sticker
+    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
+    if is_reply_to_bot and saved_stickers:
+        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        await asyncio.sleep(random.uniform(0.5, 1.0))
+        await context.bot.send_sticker(
+            chat_id=chat_id,
+            sticker=random.choice(saved_stickers),
+            reply_to_message_id=message.message_id
+        )
+
+# 🚀 Start the bot
 async def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
+    # Handlers
     application.add_handler(CommandHandler("start", handle_start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
