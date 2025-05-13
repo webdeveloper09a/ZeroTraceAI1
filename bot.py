@@ -116,15 +116,34 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
     user_id = update.effective_user.id
+    chat_type = update.effective_chat.type
 
     if not message.sticker:
         return
 
     file_id = message.sticker.file_id
 
-    # Only owner can save stickers (in private chat or group)
-    if user_id == OWNER_ID:
+    # ✅ Only save stickers if in private chat AND user is the owner
+    if chat_type == "private" and user_id == OWNER_ID:
         save_sticker(file_id)
+
+    # 🎯 If it's a reply to bot, respond with a different random sticker
+    is_reply_to_bot = (
+        message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
+    )
+
+    if is_reply_to_bot and saved_stickers:
+        available_stickers = [s for s in saved_stickers if s != file_id]
+        if not available_stickers:
+            return  # Skip if only one sticker is saved
+
+        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        await asyncio.sleep(random.uniform(0.5, 1.0))
+        await context.bot.send_sticker(
+            chat_id=chat_id,
+            sticker=random.choice(available_stickers),
+            reply_to_message_id=message.message_id
+        )
 
     # If it's a reply to bot, respond with random sticker
     is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
