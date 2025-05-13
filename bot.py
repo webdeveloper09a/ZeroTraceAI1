@@ -102,22 +102,27 @@ Updated handle_text function
 
 Replace your current handle_text function with this:
 
-# 🗨️ Handle text (only reply if it's a greeting AND a reply to bot)
+# 🗨️ Only reply if the message is a greeting AND a reply to the bot
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
     text = message.text.strip().lower()
 
-    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
-    is_greeting = any(word in text for word in greeting_keywords)
+    # Check if this message is a reply to the bot
+    is_reply = message.reply_to_message
+    if not is_reply or message.reply_to_message.from_user.id != context.bot.id:
+        return  # Not a reply to the bot — ignore
 
-    # Only respond if the message is a reply to bot AND it's a greeting
-    if not (is_reply_to_bot and is_greeting):
-        return
+    # Check if it's a greeting
+    is_greeting = any(greet in text for greet in greeting_keywords)
+    if not is_greeting:
+        return  # Not a greeting — ignore
 
+    # Typing + slight delay
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.7, 1.3))
 
+    # Random greeting response
     response = random.choice([
         "Hello ji 🥰 ?",
         "Namaste ji 💖 Kaise ho aap?",
@@ -130,24 +135,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=response,
         reply_to_message_id=message.message_id
     )
-
-
----
-
-What this change does:
-
-Anaya stays silent if a message:
-
-Is not a reply to her.
-
-Is not a greeting (even if it’s a reply).
-
-
-She only replies to greeting messages that are replies to her.
-
-
-Let me know if you also want her to reply to non-greeting messages when replied to, or if only greetings should trigger a response.
-
 
 # 🧸 Handle sticker messages
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
