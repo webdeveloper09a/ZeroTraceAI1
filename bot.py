@@ -84,7 +84,25 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🥰 Send me stickers to save!"
         )
 
-# 🗨️ Handle text (greeting or reply to bot)
+To ensure Anaya only replies when:
+
+1. The message is a greeting and a reply to Anaya, or
+
+
+2. The message is a reply to Anaya (not just any message),
+
+
+
+We need to update the handle_text function logic. Here's the corrected version of that part:
+
+
+---
+
+Updated handle_text function
+
+Replace your current handle_text function with this:
+
+# 🗨️ Handle text (only reply if it's a greeting AND a reply to bot)
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
@@ -93,27 +111,43 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
     is_greeting = any(word in text for word in greeting_keywords)
 
-    if not (is_reply_to_bot or is_greeting):
+    # Only respond if the message is a reply to bot AND it's a greeting
+    if not (is_reply_to_bot and is_greeting):
         return
 
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.7, 1.3))
 
-    if is_greeting:
-        response = random.choice([
-            "Hello ji 🥰 ?",
-            "Namaste ji 💖 Kaise ho aap?",
-            "Heyy 😇 mood kaisa hai aaj?",
-            "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
-        ])
-    else:
-        response = get_together_response(text)
+    response = random.choice([
+        "Hello ji 🥰 ?",
+        "Namaste ji 💖 Kaise ho aap?",
+        "Heyy 😇 mood kaisa hai aaj?",
+        "Hi ! 💕 Aapko dekh ke din ban gaya ✨"
+    ])
 
     await context.bot.send_message(
         chat_id=chat_id,
         text=response,
         reply_to_message_id=message.message_id
     )
+
+
+---
+
+What this change does:
+
+Anaya stays silent if a message:
+
+Is not a reply to her.
+
+Is not a greeting (even if it’s a reply).
+
+
+She only replies to greeting messages that are replies to her.
+
+
+Let me know if you also want her to reply to non-greeting messages when replied to, or if only greetings should trigger a response.
+
 
 # 🧸 Handle sticker messages
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
