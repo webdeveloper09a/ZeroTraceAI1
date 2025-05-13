@@ -16,7 +16,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 if not TOGETHER_API_KEY or not TELEGRAM_TOKEN:
     raise ValueError("Missing TELEGRAM_TOKEN or TOGETHER_API_KEY.")
 
-# ✅ Only you can trigger /start and save stickers
+# ✅ Only owner can trigger /start and save stickers
 OWNER_ID = 7796598050
 
 # 🤖 Together API Client
@@ -41,7 +41,10 @@ def save_sticker(file_id):
             json.dump(saved_stickers, f)
 
 # 👋 Greeting keywords
-greeting_keywords = ["hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy", "hii anaya", "hello anaya"]
+greeting_keywords = [
+    "hi", "hello", "hey", "namaste", "wassup", "yo", "hii", "heyy", 
+    "hii anaya", "hello anaya", "hi anaya", "heyy anaya"
+]
 
 # 🤖 AI Response Logic
 def get_together_response(prompt):
@@ -76,7 +79,7 @@ def get_together_response(prompt):
         print(f"AI Error: {e}")
         return "Mujhe samajh nahi aaya 🥺 dobara poochho na please 💖"
 
-# 🟡 Handle /start in private chat only if from owner
+# 🟡 /start only for owner in private chat
 async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type == "private" and update.effective_user.id == OWNER_ID:
         await context.bot.send_message(
@@ -84,45 +87,31 @@ async def handle_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🥰 Send me stickers to save!"
         )
 
-To ensure Anaya only replies when:
-
-1. The message is a greeting and a reply to Anaya, or
-
-
-2. The message is a reply to Anaya (not just any message),
-
-
-
-We need to update the handle_text function logic. Here's the corrected version of that part:
-
-
----
-
-Updated handle_text function
-
-Replace your current handle_text function with this:
-
-# 🗨️ Only reply if the message is a greeting AND a reply to the bot
+# 🗨️ Greeting or direct "Anaya" replies
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
     text = message.text.strip().lower()
 
-    # Check if this message is a reply to the bot
-    is_reply = message.reply_to_message
-    if not is_reply or message.reply_to_message.from_user.id != context.bot.id:
-        return  # Not a reply to the bot — ignore
+    # Reply to bot check
+    is_reply_to_bot = (
+        message.reply_to_message and
+        message.reply_to_message.from_user.id == context.bot.id
+    )
 
-    # Check if it's a greeting
+    # Check if message mentions Anaya directly
+    calls_anaya = any(name in text for name in ["hi anaya", "hello anaya", "heyy anaya", "hii anaya"])
+
+    # Greeting check
     is_greeting = any(greet in text for greet in greeting_keywords)
-    if not is_greeting:
-        return  # Not a greeting — ignore
 
-    # Typing + slight delay
+    # Reply only if: (reply + greeting) OR (directly calls Anaya)
+    if not ((is_reply_to_bot and is_greeting) or calls_anaya):
+        return
+
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
     await asyncio.sleep(random.uniform(0.7, 1.3))
 
-    # Random greeting response
     response = random.choice([
         "Hello ji 🥰 ?",
         "Namaste ji 💖 Kaise ho aap?",
@@ -136,7 +125,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_to_message_id=message.message_id
     )
 
-# 🧸 Handle sticker messages
+# 🧸 Save and respond to stickers
 async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message
     chat_id = message.chat_id
@@ -147,12 +136,16 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     file_id = message.sticker.file_id
 
-    # Only owner can save stickers (in private chat or group)
+    # Save if from owner
     if user_id == OWNER_ID:
         save_sticker(file_id)
 
-    # If it's a reply to bot, respond with random sticker
-    is_reply_to_bot = message.reply_to_message and message.reply_to_message.from_user.id == context.bot.id
+    # Respond only if it's a reply to bot
+    is_reply_to_bot = (
+        message.reply_to_message and 
+        message.reply_to_message.from_user.id == context.bot.id
+    )
+
     if is_reply_to_bot and saved_stickers:
         await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         await asyncio.sleep(random.uniform(0.5, 1.0))
@@ -162,11 +155,10 @@ async def handle_sticker(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_to_message_id=message.message_id
         )
 
-# 🚀 Start the bot
+# 🚀 Launch Bot
 async def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Handlers
     application.add_handler(CommandHandler("start", handle_start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     application.add_handler(MessageHandler(filters.Sticker.ALL, handle_sticker))
